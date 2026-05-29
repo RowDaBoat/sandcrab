@@ -1,0 +1,52 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Core tools: git, ssh, curl, and pyenv build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git \
+        openssh-client \
+        curl \
+        ca-certificates \
+        build-essential \
+        libssl-dev \
+        zlib1g-dev \
+        libbz2-dev \
+        libreadline-dev \
+        libsqlite3-dev \
+        libncursesw5-dev \
+        xz-utils \
+        tk-dev \
+        libxml2-dev \
+        libxmlsec1-dev \
+        libffi-dev \
+        liblzma-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Extra Debian packages from .sandcrab/packages (no-op when empty)
+RUN if [ -n "{{PACKAGES}}" ]; then \
+        apt-get update \
+        && apt-get install -y --no-install-recommends {{PACKAGES}} \
+        && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# pyenv (installs and manages Python versions)
+ENV PYENV_ROOT=/root/.pyenv
+ENV PATH="${PYENV_ROOT}/bin:${PYENV_ROOT}/shims:${PATH}"
+RUN curl -fsSL https://pyenv.run | bash
+
+# Python via pyenv
+ARG PYTHON_VERSION=3.12.7
+RUN pyenv install ${PYTHON_VERSION} \
+    && pyenv global ${PYTHON_VERSION}
+
+# Node.js (required by the Claude Code CLI), then the Claude CLI itself
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g @anthropic-ai/claude-code
+
+# Verify the CLI is installed
+RUN claude --version
+
+CMD ["bash"]

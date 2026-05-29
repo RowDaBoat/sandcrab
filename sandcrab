@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE_NAME="lds-workspace"
+MOUNT_PATH="/workspace"
+CONFIG_PATH="/root/.claude"
+
+# Use the current directory as the workspace
+WORKSPACE="$(pwd)"
+
+# .sandcrab holds sandbox state at the workspace root:
+#   .sandcrab/packages  - build input (extra Debian packages, host-only)
+#   .sandcrab/config     - Claude's config + login, bind-mounted into the container
+SANDCRAB_DIR="${WORKSPACE}/.sandcrab"
+CONFIG_DIR="${SANDCRAB_DIR}/config"
+
+# Ensure the host config dir exists
+mkdir -p "${CONFIG_DIR}"
+
+# Generate the Dockerfile from the template, injecting extra Debian packages
+# listed in .sandcrab/packages (one per line, '#' comments and blanks ignored).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PACKAGES_FILE="${SANDCRAB_DIR}/packages"
+PACKAGES=""
+if [ -f "${PACKAGES_FILE}" ]; then
+    PACKAGES="$(grep -vE '^[[:space:]]*(#|$)' "${PACKAGES_FILE}" | tr '\n' ' ')"
+fi
+
+TEMPLATE="$(cat "${SCRIPT_DIR}/Dockerfile.template")"
+printf '%s\n' "${TEMPLATE//\{\{PACKAGES\}\}/${PACKAGES}}" > "${SCRIPT_DIR}/Dockerfile"
+
+# Build the image (cached layers make rebuilds fast)
+docker build -t "${IMAGE_NAME}" "${SCRIPT_DIR}"
+
+# Run interactively: mount the workspace dir and cd into it, bind-mount the
+# host .sandcrab dir for Claude's config/login, then run claude with all
+# forwarded command-line args.
+docker run -ti --rm \
+    -v "${WORKSPACE}:${MOUNT_PATH}" \
+    -v "${CONFIG_DIR}:${CONFIG_PATH}" \
+    -e CLAUDE_CONFIG_DIR="${CONFIG_PATH}" \
+    -w "${MOUNT_PATH}" \
+    "${IMAGE_NAME}" claude "$@"
