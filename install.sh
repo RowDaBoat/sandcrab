@@ -1,9 +1,4 @@
 #!/usr/bin/env sh
-# sandcrab installer — run with:
-#   curl -fsSL https://raw.githubusercontent.com/<owner>/sandcrab/master/install.sh | sh
-#
-# Override the source with SANDCRAB_REPO_RAW (raw base URL, no trailing slash):
-#   curl -fsSL .../install.sh | SANDCRAB_REPO_RAW=https://raw.githubusercontent.com/me/sandcrab/master sh
 set -eu
 
 # Raw base URL the files are fetched from. Defaults to this repo's master branch.
