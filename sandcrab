@@ -1,41 +1,47 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE_NAME="lds-workspace"
-MOUNT_PATH="/workspace"
 CONFIG_PATH="/root/.claude"
 
 # Use the current directory as the workspace
 WORKSPACE="$(pwd)"
+MOUNT_PATH="/workspace"
+
+# Image name: per-workspace so distinct workspaces don't share/clobber one
+# image. The tag is a stable hash of the absolute workspace path.
+WORKSPACE_HASH="$(printf '%s' "${WORKSPACE}" | cksum | cut -d' ' -f1)"
+IMAGE_NAME="sandcrab-${WORKSPACE_HASH}"
 
 # .sandcrab holds sandbox state at the workspace root:
-#   .sandcrab/packages  - build input (extra Debian packages, host-only)
+#   .sandcrab/packages   - build input (extra Debian packages, host-only)
 #   .sandcrab/config     - Claude's config + login, bind-mounted into the container
 SANDCRAB_DIR="${WORKSPACE}/.sandcrab"
 CONFIG_DIR="${SANDCRAB_DIR}/config"
-
-# Ensure the host config dir exists
-mkdir -p "${CONFIG_DIR}"
-
-# Generate the Dockerfile from the template, injecting extra Debian packages
-# listed in .sandcrab/packages (one per line, '#' comments and blanks ignored).
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PACKAGES_FILE="${SANDCRAB_DIR}/packages"
 PACKAGES=""
+
 if [ -f "${PACKAGES_FILE}" ]; then
     PACKAGES="$(grep -vE '^[[:space:]]*(#|$)' "${PACKAGES_FILE}" | tr '\n' ' ')"
 fi
 
+mkdir -p "${CONFIG_DIR}"
+
+# Deny the agent from committing or pushing by default. Seed Claude's settings
+# from the bundled defaults on first run; edit or delete it to change the policy.
+SETTINGS_FILE="${CONFIG_DIR}/settings.json"
+if [ ! -f "${SETTINGS_FILE}" ]; then
+    cp "${SCRIPT_DIR}/settings.default.json" "${SETTINGS_FILE}"
+fi
+
+# Generate the Dockerfile from the template
 TEMPLATE="$(cat "${SCRIPT_DIR}/Dockerfile.template")"
 printf '%s\n' "${TEMPLATE//\{\{PACKAGES\}\}/${PACKAGES}}" > "${SANDCRAB_DIR}/Dockerfile"
 
-# Build the image (cached layers make rebuilds fast). The build context is the
-# host .sandcrab dir; the Dockerfile never COPYs from it, so it stays small.
-docker build -t "${IMAGE_NAME}" -f "${SANDCRAB_DIR}/Dockerfile" "${SANDCRAB_DIR}"
-
-# Run interactively: mount the workspace dir and cd into it, bind-mount the
-# host .sandcrab dir for Claude's config/login, then run claude with all
-# forwarded command-line args.
+# Run using the following volumes:
+#   - the workspace dir
+#   - the hosts .sandcrab dir for Claude's config/login
+# forward all command-line arguments to claude.
 docker run -ti --rm \
     -v "${WORKSPACE}:${MOUNT_PATH}" \
     -v "${CONFIG_DIR}:${CONFIG_PATH}" \

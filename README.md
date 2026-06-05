@@ -33,3 +33,7 @@ Each workspace gets a `.sandcrab/` directory at its root:
 - `.sandcrab/packages` — optional list of extra Debian packages to install in the image (one per line; `#` comments and blank lines ignored).
 
 Add `.sandcrab/` to your project's `.gitignore` to keep it out of version control.
+
+### Git writes are denied by default
+
+On first run, sandcrab writes a `.sandcrab/config/settings.json` with Claude Code permission rules that deny `git commit` and `git push`, so the agent can read history and diff but can't rewrite it or reach remotes. To allow them for a workspace, edit (or delete) that file's `permissions.deny` list.

@@ -5,7 +5,7 @@ set -eu
 REPO_RAW="${SANDCRAB_REPO_RAW:-https://raw.githubusercontent.com/LibreriadeSatoshi/sandcrab/master}"
 
 BIN_DIR="${HOME}/.sandcrab/bin"
-FILES="sandcrab Dockerfile.template"
+FILES="sandcrab Dockerfile.template settings.default.json"
 
 # Pick a downloader.
 if command -v curl >/dev/null 2>&1; then
