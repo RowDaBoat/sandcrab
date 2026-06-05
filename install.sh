@@ -2,7 +2,7 @@
 set -eu
 
 # Raw base URL the files are fetched from. Defaults to this repo's master branch.
-REPO_RAW="${SANDCRAB_REPO_RAW:-https://raw.githubusercontent.com/LibreriadeSatoshi/sandcrab/master}"
+REPO_RAW="${SANDCRAB_REPO_RAW:-https://raw.githubusercontent.com/RowDaBoat/sandcrab/master}"
 
 BIN_DIR="${HOME}/.sandcrab/bin"
 FILES="sandcrab Dockerfile.template settings.default.json"
