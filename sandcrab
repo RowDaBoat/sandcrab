@@ -38,6 +38,10 @@ fi
 TEMPLATE="$(cat "${SCRIPT_DIR}/Dockerfile.template")"
 printf '%s\n' "${TEMPLATE//\{\{PACKAGES\}\}/${PACKAGES}}" > "${SANDCRAB_DIR}/Dockerfile"
 
+# Build the image (cached layers make rebuilds fast). The build context is the
+# host .sandcrab dir; the Dockerfile never COPYs from it, so it stays small.
+docker build -t "${IMAGE_NAME}" -f "${SANDCRAB_DIR}/Dockerfile" "${SANDCRAB_DIR}"
+
 # Run using the following volumes:
 #   - the workspace dir
 #   - the hosts .sandcrab dir for Claude's config/login

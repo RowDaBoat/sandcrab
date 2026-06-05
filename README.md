@@ -1,39 +1,35 @@
 # sandcrab
+## _It's `auto mode` galore, baby!_
+![sandcrab](sandcrab.png)
 
-Run [Claude Code](https://github.com/anthropics/claude-code) inside a disposable Docker sandbox. `sandcrab` builds an Ubuntu image with the Claude CLI (plus git, Python via pyenv, and Node) and drops you into `claude` with the current directory mounted as the workspace — so the agent can only touch the project you launched it from.
+Run [Claude Code](https://github.com/anthropics/claude-code) inside a disposable Docker sandbox. `sandcrab` mounts the current directory into an Ubuntu container and runs `claude` there, so the agent can only touch the project you launched it from. It
 
 ## Installation
-
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RowDaBoat/sandcrab/master/install.sh | sh
 ```
 
-This downloads `sandcrab` and `Dockerfile.template` into `~/.sandcrab/bin`. Add that directory to your `PATH` (the installer prints this line — put it in your `~/.bashrc`, `~/.zshrc`, etc.):
+This installs `sandcrab` into `~/.sandcrab/bin`; add that directory to your `PATH`. You'll also need [Docker](https://docs.docker.com/get-docker/) installed and running.
+
+## Usage
+
+From any project directory, run:
 
 ```sh
-export PATH="$HOME/.sandcrab/bin:$PATH"
+sandcrab
 ```
 
-You'll also need [Docker](https://docs.docker.com/get-docker/) installed and running.
+This drops you into the sandboxed `claude` with the current directory as the workspace. Arguments are forwarded to `claude`:
 
-## What this does
+```sh
+sandcrab --model opus
+sandcrab -p "explain this codebase"
+```
 
-Running `sandcrab` from any project directory:
+## Sane defaults
+- The current directory is mounted at `/workspace` — Claude operates only there.
+- Claude's config and login persist in `./.sandcrab/config`, so you stay logged in across runs without baking credentials into the image. Add `.sandcrab/` to your `.gitignore`.
+- `git commit` and `git push` are denied by default. To allow them, edit the `permissions.deny` list in `.sandcrab/config/settings.json`.
 
-1. **Builds a sandbox image** with the Claude Code CLI, `git`, `ssh`, `python`, and `node`.
-2. **Mounts the current directory** into the container at `/workspace`, so Claude operates only there.
-3. **Persists Claude's config and login** in `./.sandcrab/config`, bind-mounted into the container — so you stay logged in across runs without leaking credentials into the image.
-4. **Runs `claude`** interactively, forwarding any arguments you pass (e.g. `sandcrab --model opus`).
-
-### Per-workspace state (`.sandcrab/`)
-
-Each workspace gets a `.sandcrab/` directory at its root:
-
-- `.sandcrab/config` — Claude's config and login, bind-mounted into the container.
-- `.sandcrab/packages` — optional list of extra Debian packages to install in the image (one per line; `#` comments and blank lines ignored).
-
-Add `.sandcrab/` to your project's `.gitignore` to keep it out of version control.
-
-### Git writes are denied by default
-
-On first run, sandcrab writes a `.sandcrab/config/settings.json` with Claude Code permission rules that deny `git commit` and `git push`, so the agent can read history and diff but can't rewrite it or reach remotes. To allow them for a workspace, edit (or delete) that file's `permissions.deny` list.
+## Disclaimer
+Use at your own risk, this is not a **perfect** sandbox by any means.
