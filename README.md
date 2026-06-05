@@ -5,7 +5,7 @@ Run [Claude Code](https://github.com/anthropics/claude-code) inside a disposable
 ## Installation
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/<owner>/sandcrab/master/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/RowDaBoat/sandcrab/master/install.sh | sh
 ```
 
 This downloads `sandcrab` and `Dockerfile.template` into `~/.sandcrab/bin`. Add that directory to your `PATH` (the installer prints this line — put it in your `~/.bashrc`, `~/.zshrc`, etc.):

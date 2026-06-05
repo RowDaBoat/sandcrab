@@ -27,10 +27,11 @@ if [ -f "${PACKAGES_FILE}" ]; then
 fi
 
 TEMPLATE="$(cat "${SCRIPT_DIR}/Dockerfile.template")"
-printf '%s\n' "${TEMPLATE//\{\{PACKAGES\}\}/${PACKAGES}}" > "${SCRIPT_DIR}/Dockerfile"
+printf '%s\n' "${TEMPLATE//\{\{PACKAGES\}\}/${PACKAGES}}" > "${SANDCRAB_DIR}/Dockerfile"
 
-# Build the image (cached layers make rebuilds fast)
-docker build -t "${IMAGE_NAME}" "${SCRIPT_DIR}"
+# Build the image (cached layers make rebuilds fast). The build context is the
+# host .sandcrab dir; the Dockerfile never COPYs from it, so it stays small.
+docker build -t "${IMAGE_NAME}" -f "${SANDCRAB_DIR}/Dockerfile" "${SANDCRAB_DIR}"
 
 # Run interactively: mount the workspace dir and cd into it, bind-mount the
 # host .sandcrab dir for Claude's config/login, then run claude with all
